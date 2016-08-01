@@ -1,22 +1,26 @@
 package etcdfs
 
 import(
-  "github.com/coreos/go-etcd/etcd"
-  "github.com/hanwen/go-fuse/fuse"
-  "github.com/hanwen/go-fuse/fuse/nodefs"
+  "bytes"
   "log"
   "time"
-  "bytes"
+
+  "github.com/coreos/etcd/client"
+
+  "github.com/hanwen/go-fuse/fuse"
+  "github.com/hanwen/go-fuse/fuse/nodefs"
+
+	"golang.org/x/net/context"
 )
 
 type etcdFile struct {
-  etcdClient *etcd.Client
+  etcdClient client.KeysAPI
   path string
 }
 
-func NewEtcdFile(client *etcd.Client, path string) nodefs.File {
+func NewEtcdFile(c client.KeysAPI, path string) nodefs.File {
   file := new(etcdFile)
-  file.etcdClient = client
+  file.etcdClient = c
   file.path = path
   return file
 }
@@ -32,7 +36,7 @@ func (f *etcdFile) String() string {
 }
 
 func (f *etcdFile) Read(buf []byte, off int64) (fuse.ReadResult, fuse.Status) {
-  res, err := f.etcdClient.Get(f.path, false, false)
+  res, err := f.etcdClient.Get(context.Background(), f.path, nil)
 
   if err != nil {
     log.Println("Error:", err)
@@ -49,7 +53,7 @@ func (f *etcdFile) Read(buf []byte, off int64) (fuse.ReadResult, fuse.Status) {
 }
 
 func (f *etcdFile) Write(data []byte, off int64) (uint32, fuse.Status) {
-  res, err := f.etcdClient.Get(f.path, false, false)
+  res, err := f.etcdClient.Get(context.Background(), f.path, nil)
 
   if err != nil {
     log.Println("Error:", err)
@@ -71,7 +75,7 @@ func (f *etcdFile) Write(data []byte, off int64) (uint32, fuse.Status) {
   newValue.Grow(len(data)+len(rightChunk))
   newValue.Write(data)
   newValue.Write(rightChunk)
-  _, err = f.etcdClient.Set(f.path, newValue.String(), 0)
+  _, err = f.etcdClient.Set(context.Background(), f.path, newValue.String(), nil)
 
   if err != nil {
     log.Println("Error:", err)
@@ -89,7 +93,7 @@ func (f *etcdFile) Release() {
 }
 
 func (f *etcdFile) GetAttr(out *fuse.Attr) fuse.Status {
-  res, err := f.etcdClient.Get(f.path, false, false)
+  res, err := f.etcdClient.Get(context.Background(), f.path, nil)
 
   if err != nil {
     log.Println("Error:", err)

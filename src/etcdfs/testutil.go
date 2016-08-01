@@ -1,13 +1,14 @@
 package etcdfs
 
 import(
+  "fmt"
   "io/ioutil"
+  "os"
   "time"
+
   "github.com/hanwen/go-fuse/fuse"
   "github.com/hanwen/go-fuse/fuse/nodefs"
   "github.com/hanwen/go-fuse/fuse/pathfs"
-  "fmt"
-  "os"
 )
 
 const(
@@ -37,7 +38,7 @@ func (me testEtcdFsMount) Unmount() {
 
 func NewTestEtcdFsMount() testEtcdFsMount {
   t := testEtcdFsMount{}
-  
+
   var err error
   t.path, err = ioutil.TempDir("", "etcd-fs")
 
@@ -45,7 +46,9 @@ func NewTestEtcdFsMount() testEtcdFsMount {
     fmt.Printf("Temdir fail: %v\n", err)
   }
 
-  etcdFs := EtcdFs{FileSystem: pathfs.NewDefaultFileSystem(), EtcdEndpoint: testEtcdEndpoint}
+  etcdFs := EtcdFs{
+		FileSystem: pathfs.NewDefaultFileSystem(),
+	}
 
   nfs := pathfs.NewPathNodeFs(&etcdFs, nil)
 
